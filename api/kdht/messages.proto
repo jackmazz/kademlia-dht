@@ -1,0 +1,83 @@
+/*
+Copyright 2021, 2023 Ethan Blanton <eblanton@buffalo.edu>
+
+This file is part of a CSE 486/586 project from the University at
+Buffalo.  Distribution of this file or its associated repository
+requires the written permission of Ethan Blanton.  Sharing this file
+may be a violation of academic integrity, please consult the course
+policies for more information.
+*/
+
+syntax = "proto3";
+
+option go_package = "cse586.kdht/api/kdht";
+
+package kdht;
+
+// NodeInfo represents a node in the DHT.  It contains the node's
+// listening TCP address and its 160-bit node ID.
+//
+// It is an error to send an Address that is not a valid string
+// containing a node address that can be connected to with net.Dial(),
+// and it is an error to send an ID field that is not exactly 160 bits
+// long.
+message NodeInfo {
+    string address = 1;
+    bytes id = 2;
+}
+
+// MessageType indicates the type of a Message.  Different
+// message types have different valid fields.
+enum MessageType {
+    // PING request
+    PING = 0;
+    // STORE value at key
+    STORE = 1;
+    // GET a specific key's value
+    GET = 2;
+    // Request K closest nodes to a key
+    FIND_NODE = 3;
+    // Request value for a key, or K closest nodes
+    FIND_VALUE = 4;
+    // PING or STORE acknowledgment
+    ACK = 5;
+    // Reply to FIND_NODE or FIND_VALUE
+    NODES = 6;
+    // Reply to successful FIND_VALUE
+    VALUE = 7;
+}
+
+// Message is the universal message type in a KDHT.  Every message
+// includes a Sender and Type, and the Type determines which other
+// fields are valid.  You must always send a well-formed Message,
+// but we will not ever send in incorrect Message to your
+// implementation.
+message Message {
+    // The sender of this message; both address and id must be present.
+    NodeInfo sender = 1;
+
+    // The type of this message
+    MessageType type = 2;
+
+    // Key is present for:
+    // STORE: the key to store
+    // GET: the key to retrieve
+    // FIND_NODE: the node ID to find
+    // FIND_VALUE: the key for the value to be retrieved
+    // ACK: the key that was stored in a STORE or requested by GET (empty for PING ACK)
+    // NODES: the key requested in FIND_NODE or FIND_VALUE
+    // VALUE: the key requested in FIND_VALUE
+    bytes Key = 3;
+
+    // Value is present only for:
+    // PING: an optional value may be sent for your debugging purposes
+    // STORE: the value to store for this key
+    // ACK: The value sent in a PING being acknowledged (empty for STORE ACK or GET (N)ACK)
+    // VALUE: the value retrieved by a GET or FIND_VALUE
+    bytes Value = 4;
+
+    // Nodes is the list of the K closest nodes to a requested key in
+    // the response to a FIND_NODE or FIND_VALUE message (assuming
+    // that the value was not found, in the latter case).
+    repeated NodeInfo Nodes = 5;
+}
